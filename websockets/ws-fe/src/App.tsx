@@ -1,50 +1,76 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./App.css";
 
 function App() {
-  const [socket, setSocket] = useState<WebSocket | null>(null);
-  const [message, setMessage] = useState<string[]>([]);
-  const [msg, setMsg] = useState("");
+  const [messages, setMessages] = useState([""]);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    const socket = new WebSocket("ws://localhost:8080");
-
-    socket.onopen = () => {
-      console.log("Connected to WebSocket server");
-      setSocket(socket);
+    const ws = new WebSocket("http://localhost:8080");
+    ws.onmessage = (event) => {
+      setMessages((m) => [...m, event.data]);
     };
 
-    socket.onmessage = (message) => {
-      console.log("Received message:", message.data);
-      setMessage((prevMessages) => [...prevMessages, message.data]);
+    wsRef.current = ws;
+    ws.onopen = () => {
+      ws.send(
+        JSON.stringify({
+          type: "join",
+          payload: {
+            roomId: "red",
+          },
+        })
+      );
     };
 
     return () => {
-      socket.close();
+      ws.close();
     };
   }, []);
 
-  if (!socket) {
-    return <div>Connecting...</div>;
-  }
+  console.log(messages);
 
   return (
     <>
-      <h1>WebSocket Messages</h1>
-      <ul className="list-none">
-        {message.map((msg, index) => (
-          <li key={index}>{msg}</li>
-        ))}
-      </ul>
+      <div className="flex flex-col h-[95vh] bg-gray-100">
+        {/* Chat Messages */}
+        <div className="flex-1 p-4 overflow-y-auto bg-gray-50 space-y-4">
+          <div className="flex">
+            <div className=" rounded-lg p-3 max-w-xs flex flex-col items-start gap-2">
+              {messages.map((message) => (
+                <div className="bg-gray-200 p-2 rounded-md ">{message}</div>
+              ))}
+            </div>
+          </div>
+        </div>
 
-      <input type="text" value={msg} onChange={(e) => setMsg(e.target.value)} />
-      <button
-        onClick={() => {
-          socket.send(msg);
-        }}
-      >
-        send
-      </button>
+        {/* Chat Input */}
+        <div className="p-4 bg-white border-t flex items-center space-x-2">
+          <input
+            ref={inputRef}
+            type="text"
+            className="flex-1 p-3 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300"
+            placeholder="Type a message..."
+          />
+          <button
+            className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+            onClick={() => {
+              const message = inputRef.current?.value;
+              wsRef.current?.send(
+                JSON.stringify({
+                  type: "chat",
+                  payload: {
+                    message: message,
+                  },
+                })
+              );
+            }}
+          >
+            Send
+          </button>
+        </div>
+      </div>
     </>
   );
 }

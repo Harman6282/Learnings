@@ -1,21 +1,34 @@
-import express from 'express'
-import { WebSocketServer } from 'ws'
+import { WebSocketServer, WebSocket } from "ws";
 
-const app = express()
-const httpServer = app.listen(8080)
+const wss = new WebSocketServer({ port: 8080 });
 
-const wss = new WebSocketServer({ server: httpServer });
+type User = {
+  socket: WebSocket;
+  room: string;
+};
 
-wss.on('connection', function connection(ws) {
-  ws.on('error', console.error);
+let allSockets: User[] = [];
 
-  ws.on('message', function message(data, isBinary) {
-    wss.clients.forEach(function each(client) {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(data, { binary: isBinary });
+wss.on("connection", (socket) => {
+  console.log("user connected ");
+
+  socket.on("message", (message) => {
+    const parsedMessage = JSON.parse(message as unknown as string);
+    if (parsedMessage.type === "join") {
+      allSockets.push({
+        socket,
+        room: parsedMessage.payload.roomId,
+      });
+    }
+
+    if (parsedMessage.type === "chat") {
+      const currentUserRoom = allSockets.find((x) => x.socket == socket)?.room;
+
+      for (let i = 0; i < allSockets.length; i++) {
+        if (allSockets[i]?.room === currentUserRoom) {
+          allSockets[i]?.socket.send(parsedMessage.payload.message);
+        }
       }
-    });
+    }
   });
-
-  ws.send('Hello! Message From Server!!');
 });
