@@ -1,0 +1,62 @@
+coffee_type: espresso
+size: small
+servings: 2
+
+coffee_recipe:
+  base: 2 shots
+  milk: whole_milk
+
+# strings
+
+coffee_name: Morning Starbucks
+description: "A strong and bold espresso to start your day."
+
+instructions: |
+  1. Brew the espresso shots.
+  2. Steam the whole milk.
+  3. Pour the steamed milk over the espresso.
+  4. Serve immediately.
+
+# numbers
+price: 5.99
+cups: 3
+####
+
+sweetner: null
+water: ~
+
+launch_date: 06-09-2025
+
+flavours:
+  - caremel
+  - choclate
+  - vanilla
+
+steeping_times: [2, 5, 3]
+
+categories:
+  - name: Ancient
+    varities:
+      - Vanilla
+      - Chocolate
+  - name: Modern
+    varities:
+      - black coffee
+      - white coffee
+
+default_base: &default_type
+  water: hot
+  milk: null
+  time: 5
+
+morning_coffee:
+  <<: *default_type
+  water: 200ml
+  coffee: 2_spoons
+
+zip_code: !!str 234335
+count: !!int "234"
+
+unique_flavour: !!set
+  ? cloves
+  ? mint
