@@ -35,48 +35,64 @@ export default function page() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitted(true);
-
-    const mime = image.type.split("/")[1];
-    console.log("mime:", mime);
-
-    const res = await fetch("http://localhost:8080/get-presigned-url", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        mime,
-      }),
-    });
-
-    if (!res) {
-      console.log("error getting presigned url");
-      return;
-    }
-
-    const data = await res.json();
-
-    const response = await fetch(data.url, {
-      method: "PUT",
-      headers: {
-        "Content-Type": image.type || "application/octet-stream",
-      },
-      body: image,
-    })
-
-    if(!response){
-      console.log("error uploading file to s3")
-      return 
-    }
-
-    console.log("data", data.url);
-
-    console.log("file:", image);
-
-    setTimeout(() => setSubmitted(false), 3000);
-  };
-
   
+    try {
+      const mime = image.type.split("/")[1];
+  
+      // Step 1: Get presigned URL
+      const res = await fetch("http://localhost:8080/get-presigned-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mime }),
+      });
+  
+      if (!res.ok) {
+        console.error("Error getting presigned URL:", res.status);
+        return;
+      }
+  
+      const data = await res.json();
+      const { url, filename } = data;
+  
+      // Step 2: Upload image to S3
+      const s3Response = await fetch(url, {
+        method: "PUT",
+        headers: {
+          "Content-Type": image.type || "application/octet-stream",
+        },
+        body: image,
+      });
+  
+      if (!s3Response.ok) {
+        console.error("Error uploading file to S3:", s3Response.status);
+        return;
+      }
+  
+      // Step 3: Save product to backend
+      const resp = await fetch("http://localhost:8080/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.name,
+          description: form.description,
+          price: form.price,
+          filename,
+        }),
+      });
+  
+      if (!resp.ok) {
+        console.error("Error creating product:", resp.status);
+        return;
+      }
+  
+      console.log("Product created successfully");
+  
+    } catch (err) {
+      console.error("Unexpected error:", err);
+    } finally {
+      setSubmitted(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-stone-950 flex items-center justify-center p-6 font-sans">

@@ -14,12 +14,12 @@ export default async function page() {
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 p-8">
       {products.map((product) => (
         <div
-          key={product.id + Math.random()}
+          key={product.name}
           className="bg-white rounded-2xl shadow hover:shadow-md transition overflow-hidden flex flex-col"
         >
           <div className="relative w-full aspect-[4/3]">
             <Image
-              src={product.filename || ""}
+              src={`https://do1vbrd2aouom.cloudfront.net/${product.filename}` || ""}
               alt={product.name}
               fill
               className="object-cover"
