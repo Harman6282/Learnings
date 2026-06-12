@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net"
 
@@ -13,6 +14,7 @@ import (
 
 type server struct {
 	pb.UnimplementedCalculatorServer
+	pb.UnimplementedGreeterServer
 }
 
 func (s *server) Add(ctx context.Context, req *pb.AddRequest) (*pb.AddResponse, error) {
@@ -24,13 +26,16 @@ func (s *server) Add(ctx context.Context, req *pb.AddRequest) (*pb.AddResponse, 
 	}, nil
 }
 
+func (s *server) Greet(ctx context.Context, req *pb.HelloRequest) (*pb.HelloResponse, error) {
+	return &pb.HelloResponse{
+		Message: fmt.Sprintf("Hello %s, nice to have you!", req.Name),
+	}, nil
+}
+
 func main() {
 
 	cert := "cert.pem"
 	key := "key.pem"
-
-
-
 
 	port := ":50051"
 	lis, err := net.Listen("tcp", port)
@@ -46,7 +51,7 @@ func main() {
 	grpcServer := grpc.NewServer(grpc.Creds(creds))
 
 	pb.RegisterCalculatorServer(grpcServer, &server{})
-
+	pb.RegisterGreeterServer(grpcServer, &server{})
 
 	log.Println("Server is running on port", port)
 	err = grpcServer.Serve(lis)

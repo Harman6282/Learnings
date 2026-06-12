@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"time"
 
@@ -33,18 +32,34 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
 	defer cancel()
 
-	req := pb.AddRequest{
+	addReq := pb.AddRequest{
 		A: 213,
 		B: 287,
 	}
-	res, err := client.Add(ctx, &req)
+	addRes, err := client.Add(ctx, &addReq)
 	if err != nil {
 		log.Fatalln("could not add:" , err)
 	}
 	 
-	log.Println("sum:", res.Sum)
+	log.Println("sum:", addRes.Sum)
 
 
-	connState := conn.GetState()
-	fmt.Println("connection state:", connState)
+	// -----------------------------------
+
+	greeterClient := pb.NewGreeterClient(conn)
+	
+	greeterReq := &pb.HelloRequest{Name: "Harman"}
+	
+	greeterRes, err := greeterClient.Greet(ctx, greeterReq)
+
+	if err != nil {
+		log.Fatalln("Could not greet:", err)
+	}
+	
+	
+	log.Println("Greet:", greeterRes.Message)
+
+
+	// connState := conn.GetState()
+	// fmt.Println("connection state:", connState)
 }
