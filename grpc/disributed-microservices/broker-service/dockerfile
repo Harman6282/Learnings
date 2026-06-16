@@ -1,0 +1,23 @@
+FROM golang:1.26-alpine AS builder
+
+WORKDIR /app
+
+COPY go.mod go.sum /app/
+
+RUN go mod download
+
+COPY . .
+
+RUN go build -o broker ./cmd/api 
+
+# RUN 
+
+FROM alpine:latest
+
+WORKDIR /app
+
+COPY --from=builder /app/broker .
+
+EXPOSE 80
+
+CMD ["./broker"]
