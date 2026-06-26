@@ -6,9 +6,10 @@ services:
     ports:
       - "8080:8080"
     environment:
-      DSN: "host=postgres port=5432 user=postgres password=password dbname=users sslmode=disable connect_timeout=5"
+      RABBITMQ_URL: "amqp://admin:password@rabbitmq:5672/"
     depends_on:
       - authentication
+      - rabbitmq
 
   authentication:
     build:
@@ -20,6 +21,21 @@ services:
       DSN: "host=postgres port=5432 user=postgres password=password dbname=users sslmode=disable connect_timeout=5"
     depends_on:
       - postgres
+
+  logger:
+    build:
+      context: ./logger-service
+    restart: always
+    ports:
+      - "8082:8080"
+    environment:
+      MONGO_URI: "mongodb://admin:password@mongo:27017/?authSource=admin"
+      MONGO_DB: "logs"
+      RABBITMQ_URL: "amqp://admin:password@rabbitmq:5672/"
+    depends_on:
+      - mongo
+      - rabbitmq
+
   postgres:
     image: postgres:18.3
     restart: always
@@ -32,5 +48,62 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql
 
+  mongo:
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  mailer:
+    build:
+      context: ./mailer-service
+    restart: always
+    environment:
+      MAIL_DOMAIN: localhost
+      MAIL_HOST: mailhog
+      MAIL_PORT: 1025
+      MAIL_ENCRYPTION: none
+      MAIL_USERNAME: ""
+      MAIL_PASSWORD: ""
+      FROM_FROMNAME: "John Smith"
+      FROM_FROMADDRESS: john.smith@example.com
+      RABBITMQ_URL: "amqp://admin:password@rabbitmq:5672/"
+    depends_on:
+      - rabbitmq
+
+  listener:
+    build:
+      context: ./listener-service
+    restart: always
+    environment:
+      RABBITMQ_URL: "amqp://admin:password@rabbitmq:5672/"
+    depends_on:
+      - rabbitmq
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: password
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
 volumes:
   postgres_data:
+  mongo_data:
+  rabbitmq_data:
